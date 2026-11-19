@@ -48,7 +48,10 @@ jobs:
           echo "$NGINX_OUT" | grep -q "nginx version: nginx/1.31.9"
 
           # Verify root/alias directives are disabled (00_drop-alias-root.patch)
-          if docker run --rm --entrypoint nginx local/nginx-ingress-controller:${{ env.IMAGE_TAG }} -g 'events{} http{ server{ location / { root /etc; } } }' -t 2>&1 | grep -q "unknown directive \"root\""; then
+          ROOT_TEST_OUT="$(docker run --rm --entrypoint sh local/nginx-ingress-controller:${{ env.IMAGE_TAG }} -c \
+            'printf "events{} http{ server{ location / { root /etc; } } }\n" > /tmp/root-test.conf && nginx -t -c /tmp/root-test.conf 2>&1 || true')"
+          echo "$ROOT_TEST_OUT"
+          if echo "$ROOT_TEST_OUT" | grep -q 'unknown directive "root"'; then
             echo "Verified: root directive is disabled."
           else
             echo "ERROR: root directive was not rejected!" >&2

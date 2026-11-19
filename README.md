@@ -60,8 +60,8 @@ docker run --rm nginx-ingress-controller:v1.15.1-nginx1.31.9 /nginx-ingress-cont
 docker run --rm --entrypoint id nginx-ingress-controller:v1.15.1-nginx1.31.9 -u
 
 # Confirm 'root' directive is stripped (should report: unknown directive "root")
-docker run --rm --entrypoint nginx nginx-ingress-controller:v1.15.1-nginx1.31.9 \
-  -g 'events{} http{ server{ location / { root /etc; } } }' -t
+docker run --rm --entrypoint sh nginx-ingress-controller:v1.15.1-nginx1.31.9 -c \
+  'printf "events{} http{ server{ location / { root /etc; } } }\n" > /tmp/root-test.conf && nginx -t -c /tmp/root-test.conf'
 ```
 
 ## Deploy to Kubernetes (Drop-in Helm Upgrade)
