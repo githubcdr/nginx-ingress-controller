@@ -11,7 +11,7 @@
 #   - 00_drop-alias-root.patch (hardening: disables root/alias directives)
 # ==============================================================================
 
-ARG ALPINE_VERSION=3.23.8
+ARG ALPINE_VERSION=3.24.4
 ARG GO_VERSION=1.26-alpine3.23
 ARG INGRESS_NGINX_TAG=controller-v1.15.1
 ARG INGRESS_NGINX_COMMIT=0a5901f3c64f11e92e487799b8da3f00cca37515
