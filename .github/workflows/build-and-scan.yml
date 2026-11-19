@@ -73,7 +73,7 @@ jobs:
           test "$UID_OUT" = "101"
 
       - name: Run Trivy vulnerability scanner (${{ matrix.arch }})
-        uses: aquasecurity/trivy-action@v0.35.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: local/nginx-ingress-controller:${{ env.IMAGE_TAG }}-${{ matrix.arch }}
           format: table
