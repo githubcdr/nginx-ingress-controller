@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1.7
+# syntax=docker/dockerfile:1.29
 
 # ==============================================================================
 # Resurrected Kubernetes ingress-nginx Controller (v1.15.1 + NGINX 1.31.9)
