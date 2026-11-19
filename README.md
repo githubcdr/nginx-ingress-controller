@@ -1,6 +1,6 @@
 # nginx-ingress-controller-resurrected
 
-A security-updated, ready-to-run Docker image for the archived [`kubernetes/ingress-nginx`](https://github.com/kubernetes/ingress-nginx) controller (`controller-v1.15.1`), rebuilt with **NGINX 1.31.9** (released November 18, 2026) and updated OpenResty Lua / Alpine 3.23.8 runtime components.
+A security-updated, ready-to-run Docker image for the archived [`kubernetes/ingress-nginx`](https://github.com/kubernetes/ingress-nginx) controller (`controller-v1.15.1`), rebuilt with **NGINX 1.31.9** (released November 18, 2026), **ModSecurity v3.0.17**, **Go 1.27** (with patched `google.golang.org/grpc v1.85.0` and `golang.org/x/crypto v0.59.0`), and **Alpine 3.24.4**.
 
 > **Note:** `kubernetes/ingress-nginx` was officially archived on March 24, 2026 (`v1.15.1` was the final upstream release, still bundling NGINX `1.27.1`). This repository provides a drop-in patched container image to remediate the November 2026 critical NGINX RCE vulnerabilities while you plan a migration to Gateway API or an actively maintained ingress controller.
 
@@ -19,12 +19,17 @@ Upgrading NGINX from `1.27.1` to **`1.31.9`** (alongside OpenResty `1.31.8.1`-al
 | **CVE-2026-113425** | Mail proxy module | Use-after-free (module also disabled at compile time) | NGINX 1.30.7 / **1.31.9** |
 | **CVE-2026-120993** | PROXY protocol v2 | NULL pointer dereference | NGINX 1.30.7 / **1.31.9** |
 | **CVE-2026-120967 / 123640** | Stream & SSL preread | Validation bypasses | NGINX 1.30.7 / **1.31.9** |
+| **CVE-2026-30923 / 52747 / 52761 / 73856 / 104269** | ModSecurity (`libmodsecurity3`) | Worker DoS (`t:hexDecode`), multipart/RFC 2231/response WAF bypasses | ModSecurity **v3.0.17** |
+| **CVE-2026-33186 / 84445 / 84304** | `google.golang.org/grpc` | HTTP/2 `:path` authz bypass, xDS DoS, heap exhaustion | `grpc` **v1.85.0** |
+| **CVE-2026-56854 / 46595 / 39833 / 42508 / 46598** | `golang.org/x/crypto` | SSH/keyring constraint bypasses & signature panics | `x/crypto` **v0.59.0** |
+| **CVE-2026-4342** | `ingress-nginx` controller | Annotation / config injection RCE | `controller-v1.15.1` |
 
 ### Additional Hardening
 - **Strict SHA-256 verification** re-enabled in [`nginx/build.sh`](nginx/build.sh) for all 28 downloaded source tarballs (upstream had checksum verification commented out).
 - **Pinned upstream controller commit**: `controller-v1.15.1` (`0a5901f3c64f11e92e487799b8da3f00cca37515`) verified during build.
 - **`00_drop-alias-root.patch`** updated for NGINX `1.31.9` to strip the `root` and `alias` directives from NGINX core.
-- **Minimal non-root runtime**: Alpine `3.23.8`, runs as `www-data` (UID `101`), `cap_net_bind_service=+ep` only, `libcap` removed after `setcap`, no compilers or static `.a` libraries in the final image.
+- **Minimal non-root runtime**: Alpine `3.24.4`, runs as `www-data` (UID `101`), `cap_net_bind_service=+ep` only, `libcap` removed after `setcap`, no compilers or static `.a` libraries in the final image.
+- **Webhook NetworkPolicy**: [`deploy/networkpolicy.yaml`](deploy/networkpolicy.yaml) restricts admission webhook port `8443` to the control plane (`kube-system`).
 - **Multi-arch ready**: Builds cleanly for `linux/amd64` and `linux/arm64` (including dynamic musl linker path `/etc/ld-musl-$(uname -m).path`).
 
 ## Build the Docker Image

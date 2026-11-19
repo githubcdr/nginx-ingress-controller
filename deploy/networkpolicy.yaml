@@ -1,0 +1,39 @@
+# Hardened NetworkPolicy for ingress-nginx controller pods:
+# - Allows HTTP/HTTPS traffic (80, 443)
+# - Restricts the admission webhook (8443) so arbitrary workloads inside the
+#   cluster cannot reach it (mitigates IngressNightmare-class attack paths)
+#
+# Adjust `ipBlock` or `namespaceSelector` for your cluster's API server / control plane
+# before applying:
+#   kubectl apply -f deploy/networkpolicy.yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: ingress-nginx-controller-hardening
+  namespace: ingress-nginx
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: ingress-nginx
+      app.kubernetes.io/component: controller
+  policyTypes:
+    - Ingress
+  ingress:
+    # Public HTTP/HTTPS ingress traffic
+    - ports:
+        - protocol: TCP
+          port: 80
+        - protocol: TCP
+          port: 443
+    # Prometheus metrics (restrict to your monitoring namespace if desired)
+    - ports:
+        - protocol: TCP
+          port: 10254
+    # Admission webhook: ONLY allow Kubernetes control plane / kube-system
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - protocol: TCP
+          port: 8443

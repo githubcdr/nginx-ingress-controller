@@ -3,16 +3,22 @@
 # ==============================================================================
 # Resurrected Kubernetes ingress-nginx Controller (v1.15.1 + NGINX 1.31.9)
 #
-# Security fixes included via NGINX 1.31.9 (released 2026-11-18):
-#   - CVE-2026-123007 (HTTP/2 flow control integer/heap buffer overflow -> RCE)
-#   - CVE-2026-123633 (HTTP/2 upstream proxying use-after-free -> RCE)
-#   - CVE-2026-123634, CVE-2026-121810, CVE-2026-125283, CVE-2026-118899,
-#     CVE-2026-113425, CVE-2026-120993, CVE-2026-120967, CVE-2026-123640
+# Security fixes included:
+#   - NGINX 1.31.9 (released 2026-11-18):
+#       CVE-2026-123007 (HTTP/2 flow control integer/heap buffer overflow -> RCE)
+#       CVE-2026-123633 (HTTP/2 upstream proxying use-after-free -> RCE)
+#       CVE-2026-123634, CVE-2026-121810, CVE-2026-125283, CVE-2026-118899,
+#       CVE-2026-113425, CVE-2026-120993, CVE-2026-120967, CVE-2026-123640
+#   - ModSecurity v3.0.17:
+#       CVE-2026-30923, CVE-2026-52747, CVE-2026-52761, CVE-2026-73856, CVE-2026-104269
+#   - Go 1.27 + google.golang.org/grpc v1.85.0 + golang.org/x/crypto v0.59.0:
+#       CVE-2026-33186, CVE-2026-84445, CVE-2026-84304, CVE-2026-56854,
+#       CVE-2026-46595, CVE-2026-39833, CVE-2026-42508, CVE-2026-46598
 #   - 00_drop-alias-root.patch (hardening: disables root/alias directives)
 # ==============================================================================
 
 ARG ALPINE_VERSION=3.24.4
-ARG GO_VERSION=1.26-alpine3.23
+ARG GO_VERSION=1.27-alpine3.24
 ARG INGRESS_NGINX_TAG=controller-v1.15.1
 ARG INGRESS_NGINX_COMMIT=0a5901f3c64f11e92e487799b8da3f00cca37515
 ARG VERSION=v1.15.1-nginx1.31.9
@@ -57,6 +63,9 @@ RUN git clone --depth 1 --branch "${INGRESS_NGINX_TAG}" https://github.com/kuber
 ENV CGO_ENABLED=0 \
     GOOS=${TARGETOS} \
     GOARCH=${TARGETARCH}
+
+# Patch vulnerable Go dependencies frozen in archived controller-v1.15.1 (March 2026)
+RUN go get google.golang.org/grpc@v1.85.0 golang.org/x/crypto@v0.59.0
 
 RUN PKG="k8s.io/ingress-nginx" \
   && REPO_INFO="https://github.com/kubernetes/ingress-nginx" \

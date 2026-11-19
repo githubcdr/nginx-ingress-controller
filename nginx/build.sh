@@ -32,7 +32,8 @@ export SETMISC_VERSION=v0.34
 export MORE_HEADERS_VERSION=v0.40
 export NGINX_DIGEST_AUTH=v1.0.0
 export MODSECURITY_VERSION=v1.0.4
-export MODSECURITY_LIB_VERSION=v3.0.14
+# ModSecurity v3.0.17 fixes CVE-2026-30923, CVE-2026-52747, CVE-2026-52761, CVE-2026-73856, CVE-2026-104269
+export MODSECURITY_LIB_VERSION=v3.0.17
 export OWASP_MODSECURITY_CRS_VERSION=v4.29.0
 export LUA_NGX_VERSION=v0.10.32rc7
 export LUA_STREAM_NGX_VERSION=v0.0.20rc3
@@ -296,9 +297,6 @@ sh build.sh
 # https://github.com/owasp-modsecurity/ModSecurity/issues/1909#issuecomment-465926762
 sed -i '115i LUA_CFLAGS="${LUA_CFLAGS} -DWITH_LUA_JIT_2_1"' build/lua.m4
 sed -i '117i AC_SUBST(LUA_CFLAGS)' build/lua.m4
-
-# Fix missing <cstdint> on Alpine 3.23+ GCC
-sed -i '24i #include <cstdint>' headers/modsecurity/collection/collection.h
 
 ./configure \
   --disable-doxygen-doc \
