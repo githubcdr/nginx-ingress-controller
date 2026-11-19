@@ -1,0 +1,42 @@
+# Drop-in Helm values for upgrading an existing ingress-nginx release
+# to the security-patched NGINX 1.31.9 image.
+#
+# Usage:
+#   helm upgrade ingress-nginx ingress-nginx/ingress-nginx \
+#     -n ingress-nginx -f deploy/helm-values.yaml \
+#     --set controller.image.registry=ghcr.io \
+#     --set controller.image.image=githubcdr/nginx-ingress-controller \
+#     --set controller.image.tag=v1.15.1-nginx1.31.9
+
+controller:
+  image:
+    registry: ghcr.io
+    image: githubcdr/nginx-ingress-controller
+    tag: "v1.15.1-nginx1.31.9"
+    # Clear upstream digest so Kubernetes pulls your patched tag (or pin your own digest)
+    digest: ""
+    digestChroot: ""
+    pullPolicy: IfNotPresent
+
+  # Hardened container security context (matches UID 101 / www-data)
+  containerSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 101
+    runAsGroup: 82
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: false
+    seccompProfile:
+      type: RuntimeDefault
+    capabilities:
+      drop:
+        - ALL
+      add:
+        - NET_BIND_SERVICE
+
+  # Security-hardened controller defaults
+  allowSnippetAnnotations: false
+  config:
+    allow-snippet-annotations: "false"
+    strict-validate-path-type: "true"
+    use-http2: "true"
+    server-tokens: "false"

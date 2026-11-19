@@ -1,0 +1,90 @@
+name: Build, Verify & Scan Image
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  IMAGE_TAG: v1.15.1-nginx1.31.9
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      security-events: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build single-arch image for smoke tests & Trivy scan
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64
+          load: true
+          tags: local/nginx-ingress-controller:${{ env.IMAGE_TAG }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Smoke test NGINX 1.31.9 & controller binaries
+        run: |
+          set -euo pipefail
+          NGINX_OUT="$(docker run --rm --entrypoint nginx local/nginx-ingress-controller:${{ env.IMAGE_TAG }} -V 2>&1)"
+          echo "$NGINX_OUT"
+          echo "$NGINX_OUT" | grep -q "nginx version: nginx/1.31.9"
+
+          # Verify root/alias directives are disabled (00_drop-alias-root.patch)
+          if docker run --rm --entrypoint nginx local/nginx-ingress-controller:${{ env.IMAGE_TAG }} -g 'events{} http{ server{ location / { root /etc; } } }' -t 2>&1 | grep -q "unknown directive \"root\""; then
+            echo "Verified: root directive is disabled."
+          else
+            echo "ERROR: root directive was not rejected!" >&2
+            exit 1
+          fi
+
+          # Verify controller binary & non-root user
+          docker run --rm local/nginx-ingress-controller:${{ env.IMAGE_TAG }} /nginx-ingress-controller --version
+          UID_OUT="$(docker run --rm --entrypoint id local/nginx-ingress-controller:${{ env.IMAGE_TAG }} -u)"
+          test "$UID_OUT" = "101"
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@0.30.0
+        with:
+          image-ref: local/nginx-ingress-controller:${{ env.IMAGE_TAG }}
+          format: table
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+
+      - name: Log in to GHCR
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push multi-arch image (amd64 + arm64)
+        if: github.event_name != 'pull_request'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
