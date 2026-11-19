@@ -105,6 +105,7 @@ RUN apk update \
     bash \
     openssl \
     pcre \
+    pcre2 \
     zlib \
     ca-certificates \
     patch \
